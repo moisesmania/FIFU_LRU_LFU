@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulação de Cache</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #2f4f4f;
+            color: white;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .container {
+            width: 100%;
+            max-width: 850px;
+            padding: 10px;
+            background-color: #3c6e6f;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        .form-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        label {
+            font-size: 12px;
+            flex: 1;
+        }
+        input, select, button {
+            flex: 2;
+            padding: 5px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .cache ul {
+            display: flex;
+            gap: 6px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            justify-content: center;
+        }
+        .cache ul li {
+            background-color: #4f7475;
+            padding: 6px;
+            border-radius: 6px;
+            font-size: 14px;
+            text-align: center;
+            width: 80px;
+            height: 30px;
+            line-height: 30px;
+            font-weight: bold;
+            color: white;
+        }
+        .cache ul li.empty {
+            background-color: #7a9e9f;
+            color: #ccc;
+            font-style: italic;
+        }
+        .stats, .current-item-box {
+            margin: 4px 0;
+            font-size: 12px;
+        }
+        .current-item-box {
+            background-color: #FFD700;
+            color: black;
+            font-weight: bold;
+            text-align: center;
+            padding: 6px;
+            border-radius: 6px;
+        }
+        .animals ul {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .animals ul li {
+            background-color: #4f7475;
+            padding: 4px;
+            border-radius: 4px;
+            font-size: 11px;
+            text-align: center;
+            flex: 1 1 calc(20% - 8px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Simulação de Cache</h1>
+
+        <!-- Formulário de Acesso -->
+        <form id="access-form" class="form-group">
+            <label for="animal-id">Acessar Animal (1 a 20):</label>
+            <input type="number" id="animal-id" name="animal_id" min="1" max="20" required>
+            <button type="submit">Acessar</button>
+        </form>
+
+        <!-- Formulário de Política -->
+        <form id="policy-form" class="form-group">
+            <label for="policy">Política de Substituição:</label>
+            <button type="button" id="fifoBtn" onclick="changePolicy('FIFO')">FIFO</button>
+            <button type="button" id="lruBtn" onclick="changePolicy('LRU')">LRU</button>
+            <button type="button" id="lfuBtn" onclick="changePolicy('LFU')">LFU</button>
+        </form>
+
+        <!-- Cache -->
+        <div class="cache">
+            <h2>Cache</h2>
+            <ul id="cache-list">
+                {% for item in cache %}
+                    <li>{{ item }}</li>
+                {% endfor %}
+                {% for _ in range(5 - cache|length) %}
+                    <li class="empty">Vazio</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Item Atual -->
+        <div class="current-item-box">
+            Item Atual: {{ current_item if current_item else "Nenhum" }}
+        </div>
+
+        <!-- Animais Disponíveis -->
+        <div class="animals">
+            <h2>Animais Disponíveis</h2>
+            <ul>
+                {% for id, animal in animals.items() %}
+                    <li>{{ id }}: {{ animal }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Estatísticas -->
+        <div class="stats">
+            <p>Acertos no Cache: <span id="hits">{{ hits }}</span></p>
+            <p>Erros no Cache: <span id="misses">{{ misses }}</span></p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("access-form").addEventListener("submit", async function(e) {
+            e.preventDefault();
+            const animalId = document.getElementById("animal-id").value;
+
+            const response = await fetch("/access", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: `animal_id=${animalId}`
+            });
+            const data = await response.json();
+            if (response.ok) location.reload();
+            else alert(data.error);
+        });
+
+        // Função para alterar a política
+        function changePolicy(policy) {
+            const formData = new FormData();
+            formData.append("policy", policy);
+
+            fetch("/policy", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert(data.error);
+                }
+            });
+
+            // Desativa os outros botões
+            document.getElementById("fifoBtn").disabled = (policy === "FIFO");
+            document.getElementById("lruBtn").disabled = (policy === "LRU");
+            document.getElementById("lfuBtn").disabled = (policy === "LFU");
+        }
+    </script>
+</body>
+</html>
