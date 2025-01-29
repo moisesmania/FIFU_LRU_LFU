@@ -120,7 +120,7 @@ Para parar o servidor Flask, no terminal, pressione **CTRL+C**.
 
 ## Imagens
 
-![Imagem 1]( Captura de Tela (499).png)
+![Imagem 1](imagem01.png)
 
-![Imagem 2](Captura de Tela (501).png)
+![Imagem 2](imagem02.png)
 
